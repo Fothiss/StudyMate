@@ -228,3 +228,8 @@ backend/storage/
 backend/.env
 backend/.env.*
 !backend/.env.example
+
+# Frontend (Next.js)
+node_modules/
+frontend/.next/
+frontend/.env.local

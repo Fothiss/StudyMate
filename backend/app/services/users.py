@@ -30,7 +30,6 @@ def create_user(db: Session, payload: UserRegister) -> User:
     user = User(
         username=payload.username,
         password_hash=hash_password(payload.password),
-        full_name=payload.full_name,
     )
     db.add(user)
     try:
