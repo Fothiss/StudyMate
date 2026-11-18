@@ -15,7 +15,6 @@ class UserRegister(BaseModel):
 
     username: str = Field(min_length=3, max_length=64, pattern=USERNAME_PATTERN)
     password: str = Field(min_length=8, max_length=BCRYPT_MAX_PASSWORD_BYTES)
-    full_name: str = Field(min_length=1, max_length=255)
 
 
 class UserRead(BaseModel):
@@ -25,7 +24,6 @@ class UserRead(BaseModel):
 
     id: str
     username: str
-    full_name: str
     created_at: datetime
 
 

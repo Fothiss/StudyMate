@@ -112,7 +112,22 @@ uv run python -m app.main                                            # серв�
 
 ### Frontend
 
-Будет добавлен отдельным изменением.
+Next.js, TypeScript, Tailwind CSS и shadcn/ui. Пакеты ставятся через `npm`. Backend должен быть уже запущен — frontend обращается к нему по `NEXT_PUBLIC_API_URL`.
+
+```bash
+cd frontend
+npm install                                     # зависимости
+copy .env.example .env.local                    # адрес backend, по умолчанию 127.0.0.1:8000
+npm run dev                                     # http://localhost:3000
+```
+
+Страницы:
+
+- `/` — главная: свои материалы, загрузка нового, разделы «Тесты» и «Результаты» (пока недоступны);
+- `/login` — вход;
+- `/register` — регистрация с автоматическим входом.
+
+Без сохранённого токена главная перенаправляет на `/login`. Выход очищает токен на клиенте.
 
 ### AI
 
