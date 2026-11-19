@@ -11,12 +11,15 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.material import Material
 from app.models.user import User
+from app.services.pdf import EmptyPdfText, MaterialTooLarge, extract_material_text
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx"}
+# Пока поддерживается только PDF: остальные форматы не парсятся.
+ALLOWED_EXTENSIONS = {".pdf"}
 MATERIALS_SUBDIR = "materials"
 CHUNK_SIZE = 1024 * 1024
 FALLBACK_NAME = "material"
 MAX_FILENAME_LENGTH = 255
+EXTRACTION_READY = "ready"
 
 
 class UnsupportedFileType(Exception):
@@ -85,7 +88,11 @@ def store_file(upload: UploadFile, material_id: str, filename: str) -> str:
 
 
 def create_material(db: Session, *, user: User, title: str, upload: UploadFile) -> Material:
-    """Сохраняет файл на диск и создаёт связанную с пользователем запись."""
+    """Сохраняет файл на диск, извлекает текст и создаёт запись материала.
+
+    Материал без текстового слоя или сверх лимита токенов не сохраняется:
+    каталог файла удаляется, запись не создаётся.
+    """
     filename = sanitize_filename(upload.filename or "")
     if Path(filename).suffix.lower() not in ALLOWED_EXTENSIONS:
         raise UnsupportedFileType
@@ -93,10 +100,8 @@ def create_material(db: Session, *, user: User, title: str, upload: UploadFile) 
     material_id = str(uuid4())
     try:
         stored_path = store_file(upload, material_id, filename)
-    except (FileTooLarge, UnsupportedFileType):
-        remove_directory(material_id)
-        raise
-    except OSError:
+        text, _tokens = extract_material_text(material_directory(material_id) / filename)
+    except (FileTooLarge, UnsupportedFileType, EmptyPdfText, MaterialTooLarge, OSError):
         remove_directory(material_id)
         raise
 
@@ -106,6 +111,8 @@ def create_material(db: Session, *, user: User, title: str, upload: UploadFile) 
         title=title,
         filename=filename,
         file_path=stored_path,
+        extracted_text=text,
+        extraction_status=EXTRACTION_READY,
     )
     db.add(material)
     try:

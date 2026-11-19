@@ -229,6 +229,9 @@ backend/.env
 backend/.env.*
 !backend/.env.example
 
+# Файлы для ручных проверок парсинга, не часть проекта
+/1706.03762v7.pdf
+
 # Frontend (Next.js)
 node_modules/
 frontend/.next/

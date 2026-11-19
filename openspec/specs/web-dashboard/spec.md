@@ -41,7 +41,7 @@ The client SHALL show an explanatory empty state instead of a blank list when th
 
 ### Requirement: Material Upload From Dashboard
 
-The client SHALL let an authenticated user upload a `.pdf`, `.docx` or `.pptx` file together with a title directly from the dashboard.
+The client SHALL let an authenticated user upload a `.pdf` file together with a title directly from the dashboard.
 
 #### Scenario: Successful upload
 
@@ -51,12 +51,17 @@ The client SHALL let an authenticated user upload a `.pdf`, `.docx` or `.pptx` f
 #### Scenario: Unsupported file type
 
 - **WHEN** the API answers `415`
-- **THEN** the block shows a readable message naming the accepted formats and the list is unchanged
+- **THEN** the block shows a readable message naming the accepted format and the list is unchanged
 
 #### Scenario: File too large
 
 - **WHEN** the API answers `413`
 - **THEN** the block shows a readable message naming the size limit and the list is unchanged
+
+#### Scenario: Material rejected by the API
+
+- **WHEN** the API answers `422` because the PDF has no text layer or exceeds the token limit
+- **THEN** the block shows a readable message and the list is unchanged
 
 #### Scenario: Empty title
 
@@ -68,14 +73,48 @@ The client SHALL let an authenticated user upload a `.pdf`, `.docx` or `.pptx` f
 - **WHEN** a material is listed
 - **THEN** the original filename the user uploaded is displayed with it
 
-### Requirement: Unavailable Sections Explained
+### Requirement: Quiz Generation From Dashboard
 
-The client SHALL present the tests and results sections as unavailable and SHALL NOT offer controls in them that cannot work.
+The client SHALL let an authenticated user generate a quiz for one of their materials from the dashboard and SHALL display the summary and questions returned by the API.
 
-#### Scenario: Tests section
+#### Scenario: Material selection
 
-- **WHEN** the dashboard renders
-- **THEN** the tests section explains that tests appear once questions can be generated from a material and contains no actionable control
+- **WHEN** the user owns materials
+- **THEN** each material can be chosen as the quiz source and the most recent one is chosen by default
+
+#### Scenario: Generation pending
+
+- **WHEN** a generation request is in flight
+- **THEN** the trigger is disabled and a waiting indication is shown instead of an empty result
+
+#### Scenario: Quiz displayed
+
+- **WHEN** the API answers `200`
+- **THEN** the block shows the summary points and every question with all of its options
+
+#### Scenario: Correct answer identifiable
+
+- **WHEN** a generated question is displayed
+- **THEN** its correct option is visually distinguishable from the others
+
+#### Scenario: No materials to work with
+
+- **WHEN** the user owns no materials
+- **THEN** the block explains that a material must be uploaded first and offers no generation control
+
+#### Scenario: Generation fails
+
+- **WHEN** the API answers `502` or the request fails
+- **THEN** the block shows a readable message and no partial quiz
+
+#### Scenario: Material cannot produce a quiz
+
+- **WHEN** the API answers `422`
+- **THEN** the block shows a readable message and no partial quiz
+
+### Requirement: Results Section Explained
+
+The client SHALL present the results section as unavailable and SHALL NOT offer controls in it that cannot work.
 
 #### Scenario: Results section
 

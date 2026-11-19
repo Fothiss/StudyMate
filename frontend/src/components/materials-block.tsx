@@ -146,11 +146,11 @@ export function MaterialsBlock({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="material-file">Файл (PDF, DOCX или PPTX)</Label>
+            <Label htmlFor="material-file">Файл (PDF)</Label>
             <Input
               id="material-file"
               type="file"
-              accept=".pdf,.docx,.pptx"
+              accept=".pdf"
               onChange={handleFileChange}
               disabled={pending}
             />
