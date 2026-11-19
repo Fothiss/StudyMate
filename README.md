@@ -20,6 +20,9 @@
 
 ## Технологический стек
 
+Почему выбран каждый компонент, какие альтернативы рассматривались и что осталось
+техническим долгом — в [docs/stack.md](docs/stack.md).
+
 ### Frontend
 - React 19 + Vite
 - TypeScript
@@ -28,12 +31,12 @@
 - shadcn/ui
 
 ### Backend
-- Python
+- Python 3.12
 - FastAPI
 - Pydantic
 
 ### Database и хранение файлов
-- PostgreSQL
+- SQLite на этапе разработки (целевая БД — PostgreSQL)
 - Локальное хранилище файлов на этапе разработки
 
 ### AI-интеграция
