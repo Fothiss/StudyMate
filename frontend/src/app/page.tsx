@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Header } from "@/components/header";
 import { MaterialsBlock } from "@/components/materials-block";
+import { QuizBlock } from "@/components/quiz-block";
 import { UnavailableSection } from "@/components/unavailable-section";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
@@ -102,10 +103,7 @@ export default function DashboardPage() {
             onUploaded={addMaterial}
           />
 
-          <UnavailableSection
-            title="Тесты"
-            description="Появятся, когда научимся генерировать вопросы по загруженному материалу. Пока этой возможности нет ни в интерфейсе, ни в API."
-          />
+          <QuizBlock className="md:col-span-2" materials={materials} />
 
           <UnavailableSection
             title="Результаты"

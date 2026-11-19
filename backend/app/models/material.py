@@ -10,9 +10,8 @@ from app.models.base import IdCreatedAtMixin
 class Material(IdCreatedAtMixin, Base):
     """Загруженный учебный материал.
 
-    `extracted_text` и `extraction_status` пока не заполняются: извлечение текста
-    вынесено в отдельное изменение. Колонки заведены заранее, потому что
-    `create_all` не умеет добавлять их в уже существующую таблицу.
+    `extracted_text` заполняется при загрузке вместе с `extraction_status`:
+    по этому тексту генерируются вопросы, файл повторно не читается.
     """
 
     __tablename__ = "materials"

@@ -30,10 +30,19 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 1440
     jwt_algorithm: str = "HS256"
     max_upload_mb: int = 20
+    max_material_tokens: int = 30_000
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     host: str = "127.0.0.1"
     port: int = 8000
     reload: bool = True
+
+    gigachat_credentials: str | None = None
+    gigachat_scope: str = "GIGACHAT_API_PERS"
+    gigachat_model: str = "GigaChat-3-Ultra"
+    gigachat_timeout: float = 120.0
+    # Локально окружение не доверяет цепочке GigaChat, поэтому проверка выключена.
+    # Для продакшена нужен GIGACHAT_CA_BUNDLE_FILE с корневым сертификатом.
+    gigachat_verify_ssl: bool = False
 
     @property
     def cors_origins_list(self) -> list[str]:
