@@ -29,10 +29,12 @@
 ## Tech Stack
 
 ### Frontend
-- Next.js + React
+- Vite + React 19
 - TypeScript
-- Tailwind CSS
-- shadcn/ui
+- React Router (клиентский роутинг)
+- Tailwind CSS 4
+- shadcn/ui на `@base-ui/react`
+- lucide-react, self-hosted шрифты через `@fontsource-variable/*`
 
 ### Backend
 - Python 3.12+
@@ -67,8 +69,10 @@
 
 ### Frontend (`frontend/`)
 
-- `src/app/` — страницы и маршрутизация.
+- `src/pages/` — страницы приложения (по каталогу на маршрут).
+- `src/app/` — роутер и layout-маршруты, включая защиту приватных страниц.
 - `src/components/` — переиспользуемые UI-компоненты.
+- `src/styles/` — токены темы и глобальные стили.
 - `src/lib/` — вспомогательные функции и API-клиент.
 - `src/hooks/` — пользовательские хуки.
 
@@ -78,6 +82,7 @@
 - Используй TypeScript и типизируй данные.
 - Для UI используй shadcn/ui и Tailwind CSS.
 - Не дублируй существующие компоненты и логику.
+- Приложение — SPA с токеном в `localStorage`: серверного рендера нет, приватные маршруты закрывает layout-маршрут `RequireAuth`.
 
 ## Development Rules
 
