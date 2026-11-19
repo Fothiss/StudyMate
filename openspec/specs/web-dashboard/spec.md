@@ -73,45 +73,6 @@ The client SHALL let an authenticated user upload a `.pdf` file together with a 
 - **WHEN** a material is listed
 - **THEN** the original filename the user uploaded is displayed with it
 
-### Requirement: Quiz Generation From Dashboard
-
-The client SHALL let an authenticated user generate a quiz for one of their materials from the dashboard and SHALL display the summary and questions returned by the API.
-
-#### Scenario: Material selection
-
-- **WHEN** the user owns materials
-- **THEN** each material can be chosen as the quiz source and the most recent one is chosen by default
-
-#### Scenario: Generation pending
-
-- **WHEN** a generation request is in flight
-- **THEN** the trigger is disabled and a waiting indication is shown instead of an empty result
-
-#### Scenario: Quiz displayed
-
-- **WHEN** the API answers `200`
-- **THEN** the block shows the summary points and every question with all of its options
-
-#### Scenario: Correct answer identifiable
-
-- **WHEN** a generated question is displayed
-- **THEN** its correct option is visually distinguishable from the others
-
-#### Scenario: No materials to work with
-
-- **WHEN** the user owns no materials
-- **THEN** the block explains that a material must be uploaded first and offers no generation control
-
-#### Scenario: Generation fails
-
-- **WHEN** the API answers `502` or the request fails
-- **THEN** the block shows a readable message and no partial quiz
-
-#### Scenario: Material cannot produce a quiz
-
-- **WHEN** the API answers `422`
-- **THEN** the block shows a readable message and no partial quiz
-
 ### Requirement: Results Section Explained
 
 The client SHALL present the results section as unavailable and SHALL NOT offer controls in it that cannot work.
@@ -123,12 +84,12 @@ The client SHALL present the results section as unavailable and SHALL NOT offer 
 
 ### Requirement: User Identity In Header
 
-The client SHALL show the login of the signed-in user and a sign-out control in the dashboard header.
+The client SHALL show the login of the signed-in user and a sign-out control in the application shell of every authenticated page.
 
 #### Scenario: Login is shown
 
 - **WHEN** the dashboard renders for a signed-in user
-- **THEN** the header shows the `username` returned by `/users/me`
+- **THEN** the shell shows the `username` returned by `/users/me`
 
 #### Scenario: Profile cannot be read
 
@@ -148,3 +109,55 @@ The client SHALL distinguish a pending request from a failed one and SHALL let t
 
 - **WHEN** loading the profile or the material list fails with a server error
 - **THEN** the dashboard shows a readable message and a control that retries the request
+
+### Requirement: Practice Entry Point
+
+The dashboard SHALL offer a primary control that opens the practice page, and SHALL show it whether or not the user owns materials.
+
+#### Scenario: Control is present
+
+- **WHEN** the dashboard renders
+- **THEN** a control leading to the practice page is visible
+
+#### Scenario: No materials yet
+
+- **WHEN** the user owns no materials
+- **THEN** the control is still present and the practice page itself explains that a material must be uploaded first
+
+### Requirement: Application Navigation
+
+The client SHALL present one persistent navigation shell on every authenticated page, naming at least the dashboard and the practice page, and SHALL mark the entry of the page currently shown.
+
+#### Scenario: Entries are visible
+
+- **WHEN** any authenticated page renders
+- **THEN** the dashboard entry and the practice entry are both shown
+
+#### Scenario: Current page is marked
+
+- **WHEN** the user is on the practice page
+- **THEN** the practice entry is visually marked as the current one
+
+#### Scenario: Navigation outlives page changes
+
+- **WHEN** the user moves between authenticated pages
+- **THEN** the shell is neither removed nor rebuilt and keeps its state
+
+### Requirement: Theme Selection
+
+The client SHALL let the user switch between a dark and a light theme, SHALL keep the chosen theme across reloads, and SHALL fall back to the operating system preference when the user has not chosen one.
+
+#### Scenario: Switching themes
+
+- **WHEN** the user activates the theme control
+- **THEN** the colours change immediately without a page reload
+
+#### Scenario: Choice is kept
+
+- **WHEN** a user who chose a theme reloads any page
+- **THEN** the chosen theme is applied
+
+#### Scenario: No choice made
+
+- **WHEN** the user has never chosen a theme
+- **THEN** the theme follows the operating system preference

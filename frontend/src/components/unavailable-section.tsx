@@ -1,3 +1,5 @@
+import { Clock3 } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +15,12 @@ type UnavailableSectionProps = {
  */
 export function UnavailableSection({ title, description, className }: UnavailableSectionProps) {
   return (
-    <Card className={cn("bg-muted/40", className)}>
+    <Card className={cn("border-dashed bg-muted/30 shadow-none", className)}>
       <CardHeader>
-        <CardTitle className="text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 font-heading text-base text-muted-foreground">
+          <Clock3 className="size-4" aria-hidden />
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{description}</p>

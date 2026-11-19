@@ -232,7 +232,10 @@ backend/.env.*
 # Файлы для ручных проверок парсинга, не часть проекта
 /1706.03762v7.pdf
 
-# Frontend (Next.js)
+# Frontend (Vite)
 node_modules/
-frontend/.next/
+frontend/dist/
 frontend/.env.local
+.npm-cache/
+.check-tmp/
+.e2e-tmp/

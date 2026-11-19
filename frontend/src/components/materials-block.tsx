@@ -1,15 +1,8 @@
-"use client";
-
+import { CalendarDays, FileText, Loader2, Upload } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { describeError, uploadMaterial, type Material } from "@/lib/api";
@@ -77,19 +70,28 @@ export function MaterialsBlock({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-baseline gap-2">
+        <CardTitle className="flex items-center gap-2 font-heading text-lg">
+          <FileText className="size-4 text-primary" aria-hidden />
           Мои материалы
           {state === "ready" && (
-            <span className="text-sm font-normal text-muted-foreground">{count}</span>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+              {count}
+            </span>
           )}
         </CardTitle>
-        {state === "ready" && count > 0 && (
-          <CardDescription>Загружены раньше — показаны первыми</CardDescription>
-        )}
+        <CardDescription>
+          {state === "ready" && count > 0
+            ? "Загружены раньше — показаны первыми"
+            : "PDF с текстовым слоем, до 20 МБ"}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+
+      <CardContent className="space-y-5">
         {state === "loading" && (
-          <p className="text-sm text-muted-foreground">Загрузка материалов…</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Загрузка материалов…
+          </div>
         )}
 
         {state === "error" && (
@@ -104,26 +106,30 @@ export function MaterialsBlock({
         )}
 
         {state === "ready" && count === 0 && (
-          <div className="space-y-1">
+          <div className="rounded-xl border border-dashed px-4 py-6 text-center">
             <p className="text-sm font-medium">Материалов пока нет</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Загрузите лекцию, конспект или презентацию — по ним можно будет проходить тесты.
             </p>
           </div>
         )}
 
         {state === "ready" && count > 0 && (
-          <ul className="divide-y">
+          <ul className="space-y-1.5">
             {materials.map((material) => (
               <li
                 key={material.id}
-                className="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                className="flex items-center gap-3 rounded-xl bg-secondary/50 px-3 py-2.5 transition-colors hover:bg-secondary"
               >
-                <div className="min-w-0">
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+                  <FileText className="size-4" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{material.title}</p>
                   <p className="truncate text-xs text-muted-foreground">{material.filename}</p>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
+                <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                  <CalendarDays className="size-3.5" aria-hidden />
                   {formatDate(material.created_at)}
                 </span>
               </li>
@@ -131,7 +137,16 @@ export function MaterialsBlock({
           </ul>
         )}
 
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-3 border-t pt-4">
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="space-y-3 rounded-xl border border-dashed p-4"
+        >
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Upload className="size-4 text-primary" aria-hidden />
+            Добавить материал
+          </p>
+
           <div className="space-y-1.5">
             <Label htmlFor="material-title">Название</Label>
             <Input
@@ -159,7 +174,14 @@ export function MaterialsBlock({
           {formError && <p className="text-sm text-destructive">{formError}</p>}
 
           <Button type="submit" disabled={pending}>
-            {pending ? "Загружаем…" : "Загрузить материал"}
+            {pending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Загружаем…
+              </>
+            ) : (
+              "Загрузить материал"
+            )}
           </Button>
         </form>
       </CardContent>

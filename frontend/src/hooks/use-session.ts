@@ -1,40 +1,28 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect } from "react";
+import { useNavigate } from "react-router";
 
 import { setUnauthorizedHandler } from "@/lib/api";
-import { clearToken, getToken } from "@/lib/token";
+import { clearToken } from "@/lib/token";
 
 /**
- * Клиентская проверка сессии.
+ * Клиентская работа с сессией.
  *
- * Токен лежит в локальном хранилище браузера, поэтому ни сервер, ни middleware
- * его не видят: защита срабатывает после монтирования. Пока проверка не прошла,
- * `authenticated` равно `false` и экран показывает состояние загрузки.
+ * Токен лежит в локальном хранилище браузера, поэтому ни сервер, ни роутер
+ * его не видят: доступ к защищённым маршрутам проверяет `RequireAuth`, а этот
+ * хук отвечает за выход и за единую реакцию на `401`.
  */
 export function useSession() {
-  const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
   const signOut = useCallback(() => {
     clearToken();
-    setAuthenticated(false);
-    router.replace("/login");
-  }, [router]);
+    navigate("/login", { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
     setUnauthorizedHandler(signOut);
     return () => setUnauthorizedHandler(null);
   }, [signOut]);
 
-  useEffect(() => {
-    if (getToken()) {
-      setAuthenticated(true);
-      return;
-    }
-    router.replace("/login");
-  }, [router]);
-
-  return { authenticated, signOut };
+  return { signOut };
 }

@@ -9,7 +9,7 @@ from app.core.db import get_db
 from app.models.material import Material
 from app.models.user import User
 from app.schemas.material import MaterialRead
-from app.schemas.quiz import Quiz
+from app.schemas.quiz import Quiz, QuizRequest
 from app.services import gigachat as gigachat_service
 from app.services import materials as materials_service
 from app.services.gigachat import QuizGenerationError
@@ -93,6 +93,7 @@ def read_material(
 )
 def generate_material_quiz(
     material_id: str,
+    payload: QuizRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Quiz:
@@ -110,7 +111,11 @@ def generate_material_quiz(
         )
 
     try:
-        return gigachat_service.generate_quiz(material.extracted_text)
+        return gigachat_service.generate_quiz(
+            material.extracted_text,
+            choice_count=payload.choice_count,
+            open_count=payload.open_count,
+        )
     except QuizGenerationError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
