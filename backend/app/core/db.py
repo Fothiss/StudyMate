@@ -1,9 +1,7 @@
 """Движок SQLAlchemy, фабрика сессий и создание схемы."""
 
-from collections.abc import Iterator
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core import sqlite  # noqa: F401  импорт регистрирует listener PRAGMA
 from app.core.config import settings
@@ -17,15 +15,6 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 class Base(DeclarativeBase):
     """Базовый класс всех ORM-моделей."""
-
-
-def get_db() -> Iterator[Session]:
-    """Зависимость FastAPI: одна сессия на запрос."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def init_db() -> None:

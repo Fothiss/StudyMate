@@ -1,11 +1,9 @@
 """Проверка открытых ответов теста."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
-from app.api.deps import get_current_user
-from app.core.db import get_db
-from app.models.user import User
+from app.dependencies.security import CurrentUser
+from app.dependencies.services import MaterialServiceDep
 from app.schemas.quiz_check import (
     AnswerEvaluation,
     CheckedAnswer,
@@ -13,7 +11,6 @@ from app.schemas.quiz_check import (
     QuizCheckResponse,
 )
 from app.services import gigachat as gigachat_service
-from app.services import materials as materials_service
 from app.services.gigachat import QuizGenerationError
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
@@ -30,11 +27,11 @@ EMPTY_ANSWER_FEEDBACK = (
 )
 def check_open_answers(
     payload: QuizCheckRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser,
+    service: MaterialServiceDep,
 ) -> QuizCheckResponse:
     """Оценивает ответы через GigaChat, пустые ответы не отправляя в модель."""
-    material = materials_service.get_material(db, current_user, payload.material_id)
+    material = service.get(current_user, payload.material_id)
     if material is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
