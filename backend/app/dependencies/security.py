@@ -1,11 +1,12 @@
-"""Зависимости FastAPI, общие для защищённых роутеров."""
+"""Определение текущего пользователя по токену."""
+
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 
-from app.core.db import get_db
 from app.core.security import decode_access_token
+from app.dependencies.repositories import UserRepo
 from app.models.user import User
 
 # tokenUrl используется только для того, чтобы в /docs появилась кнопка Authorize.
@@ -21,8 +22,8 @@ def _unauthorized() -> HTTPException:
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
+    token: Annotated[str, Depends(oauth2_scheme)],
+    users: UserRepo,
 ) -> User:
     """Определяет пользователя исключительно по токену.
 
@@ -32,7 +33,10 @@ def get_current_user(
     user_id = decode_access_token(token)
     if user_id is None:
         raise _unauthorized()
-    user = db.get(User, user_id)
+    user = users.get(user_id)
     if user is None:
         raise _unauthorized()
     return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
