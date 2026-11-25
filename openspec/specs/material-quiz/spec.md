@@ -8,17 +8,22 @@ Lets a user obtain a short summary and multiple-choice questions generated from 
 
 ### Requirement: Quiz Generation
 
-The system SHALL generate a quiz for a material owned by the current user from its extracted text, using the configured language model, SHALL take the numbers of multiple-choice and open questions from the request, and SHALL store the generated quiz with its questions so it can be taken and read back later.
+The system SHALL generate a quiz for a material owned by the current user from its extracted text using the configured language model, take the requested numbers of multiple-choice and open questions, store the quiz, and SHALL respond with its identifier and questions without revealing correct options or reference answers.
 
 #### Scenario: Successful generation
 
 - **WHEN** an authenticated user requests a quiz for a material they own that has extracted text
 - **THEN** the system responds with `200` and a body containing a non-empty summary, a non-empty list of questions and a test identifier
 
+#### Scenario: Correct answers are withheld
+
+- **WHEN** a generated quiz is returned to the client before the test is submitted
+- **THEN** the response carries no correct option, no index of the correct option and no reference answer for any question
+
 #### Scenario: Generated quiz is stored
 
 - **WHEN** a quiz is generated successfully
-- **THEN** the system stores the quiz together with its questions, answer options and reference answers, and the stored quiz belongs to the requesting user
+- **THEN** the system stores the quiz with its questions, answer options and reference answers, and the stored quiz belongs to the requesting user
 
 #### Scenario: Requested counts are used
 
@@ -57,53 +62,14 @@ The system SHALL generate a quiz for a material owned by the current user from i
 
 ### Requirement: Generated Quiz Structure
 
-The system MUST validate the language model response before returning it: the quiz has at least one question, every multiple-choice question offers at least two options with a correct answer index pointing at an existing option, and every open question carries a non-empty reference answer.
+The system MUST validate the language model response before storing it: the quiz has at least one question, every multiple-choice question offers at least two options with a correct answer index pointing at an existing option, and every open question carries a non-empty reference answer, and the validated answer data SHALL be stored with the quiz and SHALL NOT be returned to the client.
 
 #### Scenario: Valid quiz returned
 
 - **WHEN** the language model returns a summary and questions whose kinds and answer data are well formed
-- **THEN** the system responds with `200` and every question carries its kind and the data that kind requires
+- **THEN** the system responds with `200`, stores the correct option index of every multiple-choice question and the reference answer of every open question, and returns every question with its kind and the options needed to answer it
 
 #### Scenario: Malformed quiz rejected
 
 - **WHEN** the language model returns no questions, a multiple-choice question with fewer than two options, an out-of-range answer index, or an open question without a reference answer
 - **THEN** the system responds with `502` and does not return the malformed quiz
-
-### Requirement: Quiz Answer Evaluation
-
-The system SHALL evaluate a user's answers to the open questions of a generated quiz against the material text using the configured language model, and SHALL return a score and written feedback for each answer, without persisting the answers or the evaluation.
-
-#### Scenario: Successful evaluation
-
-- **WHEN** an authenticated user submits answers to open questions of a material they own
-- **THEN** the system responds with `200` and a score and feedback for every submitted answer
-
-#### Scenario: Empty answer
-
-- **WHEN** a submitted answer is empty or blank
-- **THEN** the system scores that answer zero and still returns feedback for it
-
-#### Scenario: Another user's material
-
-- **WHEN** the answers are submitted for a material that belongs to a different user
-- **THEN** the system responds with `404`
-
-#### Scenario: Unknown material
-
-- **WHEN** the answers are submitted for a material identifier that does not exist
-- **THEN** the system responds with `404`
-
-#### Scenario: Language model unavailable
-
-- **WHEN** the language model cannot be reached or returns an error
-- **THEN** the system responds with `502` and no partial evaluation
-
-#### Scenario: Malformed evaluation rejected
-
-- **WHEN** the language model returns a score outside the allowed range or omits an answer
-- **THEN** the system responds with `502` and does not return the malformed evaluation
-
-#### Scenario: Nothing is stored
-
-- **WHEN** the same answers are evaluated twice
-- **THEN** the system evaluates them afresh each time and stores neither the answers nor the results

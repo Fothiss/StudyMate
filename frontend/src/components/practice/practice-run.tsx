@@ -1,15 +1,16 @@
-import { ArrowLeft, ArrowRight, Flag, PenLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, Flag, Loader2, PenLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Quiz } from "@/lib/api";
+import type { DraftQuestion } from "@/lib/practice-storage";
 import { cn } from "@/lib/utils";
 
 type PracticeRunProps = {
-  quiz: Quiz;
+  questions: DraftQuestion[];
   requestedTotal: number;
   index: number;
   answer: number | string | undefined;
+  submitting: boolean;
   onAnswer: (value: number | string) => void;
   onPrevious: () => void;
   onNext: () => void;
@@ -17,17 +18,18 @@ type PracticeRunProps = {
 };
 
 export function PracticeRun({
-  quiz,
+  questions,
   requestedTotal,
   index,
   answer,
+  submitting,
   onAnswer,
   onPrevious,
   onNext,
   onSubmit,
 }: PracticeRunProps) {
-  const question = quiz.questions[index];
-  const total = quiz.questions.length;
+  const question = questions[index];
+  const total = questions.length;
   const last = index === total - 1;
   const progress = ((index + 1) / total) * 100;
   const shortfall = requestedTotal > total ? requestedTotal - total : 0;
@@ -116,18 +118,22 @@ export function PracticeRun({
       </Card>
 
       <div className="flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={onPrevious} disabled={index === 0}>
+        <Button variant="ghost" onClick={onPrevious} disabled={index === 0 || submitting}>
           <ArrowLeft className="size-4" aria-hidden />
           Назад
         </Button>
 
         {last ? (
-          <Button onClick={onSubmit} size="lg">
-            <Flag className="size-4" aria-hidden />
-            Завершить тест
+          <Button onClick={onSubmit} size="lg" disabled={submitting}>
+            {submitting ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Flag className="size-4" aria-hidden />
+            )}
+            {submitting ? "Отправляем…" : "Завершить тест"}
           </Button>
         ) : (
-          <Button onClick={onNext} size="lg">
+          <Button onClick={onNext} size="lg" disabled={submitting}>
             Далее
             <ArrowRight className="size-4" aria-hidden />
           </Button>
@@ -135,7 +141,7 @@ export function PracticeRun({
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Правильные ответы появятся только после завершения
+        Правильные ответы появятся в разборе после завершения
       </p>
     </div>
   );

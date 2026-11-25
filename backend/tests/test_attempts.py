@@ -13,7 +13,7 @@ from app.models.question import QUESTION_CHOICE, QUESTION_OPEN, Question
 from app.schemas.quiz import OpenQuestion, Quiz
 from app.schemas.quiz_check import AnswerEvaluation
 from app.services.gigachat import QuizGenerationError
-from tests.helpers import FakeAI, generate_test, option_rows, question_rows
+from tests.helpers import FakeAI, generate_test, question_rows
 
 OPEN_TEXT = "Фотосинтез превращает свет в химическую энергию"
 
@@ -22,13 +22,6 @@ def _questions(session: Session, test_id: str) -> dict[str, Question]:
     """Вопросы теста по типу."""
     rows = question_rows(session, test_id)
     return {question.type: question for question in rows}
-
-
-def _option(session: Session, question: Question, *, correct: bool) -> str:
-    """Идентификатор верного или неверного варианта."""
-    return next(
-        option.id for option in option_rows(session, question.id) if option.is_correct is correct
-    )
 
 
 def _submit(
@@ -71,7 +64,7 @@ def test_choice_answer_is_graded_on_server(
         api,
         auth,
         test_id,
-        [{"question_id": choice.id, "selected_option_id": _option(session, choice, correct=True)}],
+        [{"question_id": choice.id, "selected_index": 0}],
     )
 
     assert response.status_code == 201
@@ -100,11 +93,39 @@ def test_wrong_option_is_incorrect(
         api,
         auth,
         test_id,
-        [{"question_id": choice.id, "selected_option_id": _option(session, choice, correct=False)}],
+        [{"question_id": choice.id, "selected_index": 1}],
     )
 
     assert response.status_code == 201
     assert response.json()["choice_correct"] == 0
+
+
+def test_out_of_range_index_is_stored_as_unanswered(
+    api: TestClient,
+    auth: dict[str, str],
+    material: dict[str, object],
+    session: Session,
+) -> None:
+    test_id = generate_test(api, auth, str(material["id"]))["test_id"]
+    choice = _questions(session, test_id)[QUESTION_CHOICE]
+
+    response = _submit(
+        api,
+        auth,
+        test_id,
+        [{"question_id": choice.id, "selected_index": 99}],
+    )
+
+    assert response.status_code == 201
+    assert response.json()["choice_correct"] == 0
+    session.rollback()
+    answer = next(
+        item
+        for item in session.scalars(select(Answer)).all()
+        if item.question_id == choice.id
+    )
+    assert answer.selected_option_id is None
+    assert answer.is_correct_auto is False
 
 
 def test_unanswered_question_is_stored_and_counted(
@@ -404,7 +425,7 @@ def test_detail_shows_answers_and_scores(
         [
             {
                 "question_id": questions[QUESTION_CHOICE].id,
-                "selected_option_id": _option(session, questions[QUESTION_CHOICE], correct=True),
+                "selected_index": 0,
             },
             {"question_id": questions[QUESTION_OPEN].id, "answer_text": OPEN_TEXT},
         ],
@@ -434,11 +455,13 @@ def test_detail_shows_answers_and_scores(
     assert choice["correct_index"] == 0
     assert choice["selected_index"] == 0
     assert choice["is_correct"] is True
+    assert choice["reference"] is None
     assert opened["type"] == QUESTION_OPEN
     assert opened["answer_text"] == OPEN_TEXT
     assert opened["llm_score"] == 80.0
     assert opened["llm_feedback"] == "Смысл передан верно"
     assert opened["correct_index"] is None
+    assert opened["reference"] == "Процесс превращения световой энергии в химическую."
 
 
 def test_detail_of_foreign_and_unknown_attempt(

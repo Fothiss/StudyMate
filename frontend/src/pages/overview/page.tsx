@@ -4,8 +4,8 @@ import { Link } from "react-router";
 
 import { useProfile } from "@/app/shell/profile-context";
 import { MaterialsBlock } from "@/components/materials-block";
-import { UnavailableSection } from "@/components/unavailable-section";
-import { describeError, fetchMaterials, type Material } from "@/lib/api";
+import { RecentAttempts } from "@/components/results/recent-attempts";
+import { describeError, fetchAttempts, fetchMaterials, type Attempt, type Material } from "@/lib/api";
 import type { LoadState } from "@/lib/load-state";
 
 export default function OverviewPage() {
@@ -16,10 +16,21 @@ export default function OverviewPage() {
   const [materialsState, setMaterialsState] = useState<LoadState>("loading");
   const [attempt, setAttempt] = useState(0);
 
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [attemptsError, setAttemptsError] = useState<string | null>(null);
+  const [attemptsState, setAttemptsState] = useState<LoadState>("loading");
+  const [attemptsReload, setAttemptsReload] = useState(0);
+
   const retry = useCallback(() => {
     setMaterialsState("loading");
     setMaterialsError(null);
     setAttempt((value) => value + 1);
+  }, []);
+
+  const retryAttempts = useCallback(() => {
+    setAttemptsState("loading");
+    setAttemptsError(null);
+    setAttemptsReload((value) => value + 1);
   }, []);
 
   const addMaterial = useCallback((material: Material) => {
@@ -45,6 +56,26 @@ export default function OverviewPage() {
       cancelled = true;
     };
   }, [attempt]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchAttempts()
+      .then((list) => {
+        if (cancelled) return;
+        setAttempts(list);
+        setAttemptsState("ready");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setAttemptsError(describeError(error));
+        setAttemptsState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptsReload]);
 
   return (
     <div className="space-y-5">
@@ -91,9 +122,11 @@ export default function OverviewPage() {
       </div>
 
       <div className="rise" style={{ animationDelay: "120ms" }}>
-        <UnavailableSection
-          title="Результаты"
-          description="Появятся после того, как тесты начнут сохраняться: здесь будут оценки, разбор ошибок и прогресс."
+        <RecentAttempts
+          state={attemptsState}
+          attempts={attempts}
+          errorMessage={attemptsError ?? undefined}
+          onRetry={retryAttempts}
         />
       </div>
     </div>
