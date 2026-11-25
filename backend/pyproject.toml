@@ -21,3 +21,17 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+# Тесты запускаются из `backend/`: корень импорта `app` — текущий каталог.
+pythonpath = ["."]
+testpaths = ["tests"]
+# Классов-тестов в проекте нет, а модели `Test` и `TestRepository` называются
+# так же, как pytest ищет тестовые классы.
+python_classes = ["*Tests"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+]

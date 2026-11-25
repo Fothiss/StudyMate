@@ -1,34 +1,36 @@
-"""Проверка открытых ответов теста."""
+"""Проверка открытых ответов теста.
+
+Эндпоинт устарел: проверка идёт по сохранённой попытке
+(`POST /attempts/{attempt_id}/check`), где эталоны берутся из БД. Здесь он
+остаётся, пока UI не перешёл на попытки, и использует тот же код проверки.
+"""
 
 from fastapi import APIRouter, HTTPException, status
 
 from app.dependencies.security import CurrentUser
-from app.dependencies.services import MaterialServiceDep
+from app.dependencies.services import AIServiceDep, MaterialServiceDep
 from app.schemas.quiz_check import (
-    AnswerEvaluation,
     CheckedAnswer,
     QuizCheckRequest,
     QuizCheckResponse,
 )
-from app.services import gigachat as gigachat_service
 from app.services.gigachat import QuizGenerationError
+from app.services.open_answers import grade_open_answers
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
-
-EMPTY_ANSWER_FEEDBACK = (
-    "Ответ не дан, поэтому балл нулевой. Сверьтесь с эталоном и попробуйте сформулировать ответ."
-)
 
 
 @router.post(
     "/check",
     response_model=QuizCheckResponse,
     summary="Проверить открытые ответы",
+    deprecated=True,
 )
 def check_open_answers(
     payload: QuizCheckRequest,
     current_user: CurrentUser,
     service: MaterialServiceDep,
+    ai: AIServiceDep,
 ) -> QuizCheckResponse:
     """Оценивает ответы через GigaChat, пустые ответы не отправляя в модель."""
     material = service.get(current_user, payload.material_id)
@@ -43,37 +45,17 @@ def check_open_answers(
             detail="Material has no extracted text",
         )
 
-    filled = [
-        (index, answer)
-        for index, answer in enumerate(payload.answers)
-        if answer.answer.strip()
-    ]
+    try:
+        grades = grade_open_answers(material.extracted_text, payload.answers, ai)
+    except QuizGenerationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to evaluate answers",
+        ) from error
 
-    evaluated: dict[int, AnswerEvaluation] = {}
-    if filled:
-        try:
-            grades = gigachat_service.evaluate_answers(
-                material.extracted_text,
-                [answer for _, answer in filled],
-            )
-        except QuizGenerationError as error:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Failed to evaluate answers",
-            ) from error
-
-        evaluated = {index: grade for (index, _), grade in zip(filled, grades)}
-
-    results = []
-    for index in range(len(payload.answers)):
-        grade = evaluated.get(index)
-        if grade is None:
-            results.append(
-                CheckedAnswer(index=index, score=0, feedback=EMPTY_ANSWER_FEEDBACK)
-            )
-        else:
-            results.append(
-                CheckedAnswer(index=index, score=grade.score, feedback=grade.feedback)
-            )
-
-    return QuizCheckResponse(results=results)
+    return QuizCheckResponse(
+        results=[
+            CheckedAnswer(index=index, score=grade.score, feedback=grade.feedback)
+            for index, grade in enumerate(grades)
+        ]
+    )

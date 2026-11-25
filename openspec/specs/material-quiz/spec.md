@@ -8,12 +8,17 @@ Lets a user obtain a short summary and multiple-choice questions generated from 
 
 ### Requirement: Quiz Generation
 
-The system SHALL generate a quiz for a material owned by the current user from its extracted text, using the configured language model, and SHALL take the numbers of multiple-choice and open questions to produce from the request.
+The system SHALL generate a quiz for a material owned by the current user from its extracted text, using the configured language model, SHALL take the numbers of multiple-choice and open questions from the request, and SHALL store the generated quiz with its questions so it can be taken and read back later.
 
 #### Scenario: Successful generation
 
 - **WHEN** an authenticated user requests a quiz for a material they own that has extracted text
-- **THEN** the system responds with `200` and a body containing a non-empty summary and a non-empty list of questions
+- **THEN** the system responds with `200` and a body containing a non-empty summary, a non-empty list of questions and a test identifier
+
+#### Scenario: Generated quiz is stored
+
+- **WHEN** a quiz is generated successfully
+- **THEN** the system stores the quiz together with its questions, answer options and reference answers, and the stored quiz belongs to the requesting user
 
 #### Scenario: Requested counts are used
 
@@ -23,7 +28,7 @@ The system SHALL generate a quiz for a material owned by the current user from i
 #### Scenario: Nothing requested
 
 - **WHEN** the request asks for zero multiple-choice questions and zero open questions
-- **THEN** the system responds with `422` and no quiz
+- **THEN** the system responds with `422` and no quiz is generated or stored
 
 #### Scenario: Another user's material
 
@@ -43,7 +48,12 @@ The system SHALL generate a quiz for a material owned by the current user from i
 #### Scenario: Language model unavailable
 
 - **WHEN** the language model cannot be reached or returns an error
-- **THEN** the system responds with `502` and no partial quiz
+- **THEN** the system responds with `502`, returns no quiz and stores no partial test
+
+#### Scenario: Repeated requests store separate tests
+
+- **WHEN** the same material is requested twice in a row
+- **THEN** the system generates and stores two separate tests and returns a different test identifier each time
 
 ### Requirement: Generated Quiz Structure
 
@@ -58,15 +68,6 @@ The system MUST validate the language model response before returning it: the qu
 
 - **WHEN** the language model returns no questions, a multiple-choice question with fewer than two options, an out-of-range answer index, or an open question without a reference answer
 - **THEN** the system responds with `502` and does not return the malformed quiz
-
-### Requirement: Transient Quiz
-
-The system SHALL NOT persist generated quizzes; each request generates a new quiz from the material text.
-
-#### Scenario: Repeated requests
-
-- **WHEN** the same material is requested twice in a row
-- **THEN** the system responds with a newly generated quiz each time and stores nothing
 
 ### Requirement: Quiz Answer Evaluation
 
