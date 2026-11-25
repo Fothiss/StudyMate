@@ -1,4 +1,4 @@
-"""Описание API: новые пути, поле `test_id` и устаревший `/quiz/check`."""
+"""Описание API: новые пути и поле `test_id` в ответе генерации."""
 
 from fastapi.testclient import TestClient
 
@@ -24,7 +24,8 @@ def test_generation_response_has_test_id(client: TestClient) -> None:
     assert {"summary", "questions"} <= set(properties)
 
 
-def test_legacy_check_is_deprecated(client: TestClient) -> None:
+def test_legacy_check_path_is_gone(client: TestClient) -> None:
     spec = client.get("/openapi.json").json()
 
-    assert spec["paths"]["/quiz/check"]["post"]["deprecated"] is True
+    assert "/quiz/check" not in spec["paths"]
+    assert client.post("/quiz/check", json={}).status_code == 404

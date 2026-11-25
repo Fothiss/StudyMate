@@ -6,6 +6,8 @@ import LoginPage from "@/pages/login/page";
 import OverviewPage from "@/pages/overview/page";
 import PracticePage from "@/pages/practice/page";
 import RegisterPage from "@/pages/register/page";
+import AttemptPage from "@/pages/results/attempt/page";
+import ResultsPage from "@/pages/results/page";
 
 export function AppRouter() {
   return (
@@ -16,6 +18,8 @@ export function AppRouter() {
         <Route element={<AppShell />}>
           <Route index element={<OverviewPage />} />
           <Route path="/quiz" element={<PracticePage />} />
+          <Route path="/results" element={<ResultsPage />} />
+          <Route path="/results/:attemptId" element={<AttemptPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

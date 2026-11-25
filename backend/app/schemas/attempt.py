@@ -8,14 +8,17 @@ from pydantic import BaseModel, Field
 class AttemptAnswerInput(BaseModel):
     """Ответ пользователя на один вопрос.
 
-    Оба поля необязательны: тестовый вопрос отвечается вариантом, открытый —
-    текстом, а пропущенный вопрос вообще не приходит. Присланный
-    `correct_index` или эталон сервер не читает — верность берётся из БД.
+    Вопрос адресуется идентификатором, а выбор варианта — его позицией в
+    списке вариантов: клиент не получает идентификаторы вариантов и не должен
+    ими оперировать. Присланный `correct_index` или эталон сервер не читает —
+    верность берётся из БД.
     """
 
     question_id: str = Field(min_length=1, description="Вопрос, к которому относится ответ")
-    selected_option_id: str | None = Field(
-        default=None, description="Идентификатор выбранного варианта"
+    selected_index: int | None = Field(
+        default=None,
+        ge=0,
+        description="Позиция выбранного варианта в списке вариантов вопроса",
     )
     answer_text: str | None = Field(default=None, description="Текст ответа на открытый вопрос")
 
@@ -97,6 +100,9 @@ class AttemptQuestionRead(BaseModel):
         default=None, description="Индекс выбранного варианта; пусто, если не отвечен"
     )
     answer_text: str | None = None
+    reference: str | None = Field(
+        default=None, description="Эталон открытого вопроса; у тестового вопроса пусто"
+    )
     is_correct: bool | None = None
     llm_score: float | None = None
     llm_feedback: str | None = None

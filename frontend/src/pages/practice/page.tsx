@@ -1,37 +1,56 @@
+import { TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { PracticeConfig } from "@/components/practice/practice-config";
 import { PracticeGenerating } from "@/components/practice/practice-generating";
-import { PracticeResult } from "@/components/practice/practice-result";
 import { PracticeRun } from "@/components/practice/practice-run";
 import {
-  checkAnswers,
   describeQuizError,
   fetchMaterials,
   generateQuiz,
-  type CheckedAnswer,
+  submitAttempt,
+  type AttemptAnswerInput,
   type Material,
   type QuizCounts,
 } from "@/lib/api";
 import type { LoadState } from "@/lib/load-state";
 import {
-  collectOpenAnswers,
-  mergeEvaluations,
-  splitAnswers,
-} from "@/lib/practice-evaluate";
-import {
   clearPractice,
+  createDraft,
   loadPractice,
   savePractice,
   type StoredPractice,
 } from "@/lib/practice-storage";
 
-const EMPTY_OPEN_FEEDBACK =
-  "Ответ не дан, поэтому балл нулевой. Сформулируйте ответ своими словами и проверьте снова.";
+type Step = "config" | "generating" | "answering";
 
-type Step = "config" | "generating" | "answering" | "result";
+/** Ответы черновика в теле сдачи: непроставленные вопросы просто не уходят. */
+function buildAnswers(practice: StoredPractice): AttemptAnswerInput[] {
+  const answers: AttemptAnswerInput[] = [];
+
+  practice.questions.forEach((question, index) => {
+    const given = practice.answers[index];
+
+    if (question.kind === "choice") {
+      if (typeof given === "number") {
+        answers.push({ question_id: question.question_id, selected_index: given });
+      }
+      return;
+    }
+
+    const text = typeof given === "string" ? given.trim() : "";
+    if (text.length > 0) {
+      answers.push({ question_id: question.question_id, answer_text: text });
+    }
+  });
+
+  return answers;
+}
 
 export default function PracticePage() {
+  const navigate = useNavigate();
+
   const [materials, setMaterials] = useState<Material[]>([]);
   const [materialsState, setMaterialsState] = useState<LoadState>("loading");
   const [materialsError, setMaterialsError] = useState<string | null>(null);
@@ -44,8 +63,8 @@ export default function PracticePage() {
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  const [evaluationState, setEvaluationState] = useState<LoadState>("ready");
-  const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const retryMaterials = useCallback(() => {
     setMaterialsState("loading");
@@ -80,48 +99,6 @@ export default function PracticePage() {
     setPractice(next);
   }, []);
 
-  const commitEvaluation = useCallback(
-    (state: StoredPractice, results: CheckedAnswer[]) => {
-      savePractice({ ...state, evaluation: results });
-      setPractice({ ...state, evaluation: results });
-      setEvaluationState("ready");
-    },
-    [],
-  );
-
-  const evaluate = useCallback(
-    async (state: StoredPractice) => {
-      const openItems = collectOpenAnswers(state.quiz, state.answers);
-
-      if (openItems.length === 0) {
-        return;
-      }
-
-      const { filled } = splitAnswers(openItems);
-      setEvaluationError(null);
-
-      // Пустые ответы не отправляем в модель: балл за них и так известен.
-      if (filled.length === 0) {
-        commitEvaluation(state, mergeEvaluations(openItems, [], [], EMPTY_OPEN_FEEDBACK));
-        return;
-      }
-
-      setEvaluationState("loading");
-      try {
-        const graded = await checkAnswers(
-          state.materialId,
-          filled.map(({ question, reference, answer }) => ({ question, reference, answer })),
-        );
-
-        commitEvaluation(state, mergeEvaluations(openItems, filled, graded, EMPTY_OPEN_FEEDBACK));
-      } catch (error) {
-        setEvaluationState("error");
-        setEvaluationError(describeQuizError(error, "check"));
-      }
-    },
-    [commitEvaluation],
-  );
-
   const generate = useCallback(async () => {
     if (currentMaterialId === null) {
       return;
@@ -130,23 +107,16 @@ export default function PracticePage() {
     const material = materials.find((item) => item.id === currentMaterialId) ?? null;
     setGenerating(true);
     setGenerationError(null);
-    setEvaluationError(null);
+    setSubmitError(null);
 
     try {
-      const quiz = await generateQuiz(currentMaterialId, counts);
-      commit({
-        version: 1,
-        materialId: currentMaterialId,
-        materialTitle: material?.title ?? "",
-        summary: quiz.summary,
-        quiz,
-        answers: {},
-        questionIndex: 0,
-        requestedTotal: counts.choiceCount + counts.openCount,
-        submitted: false,
-        evaluation: null,
-      });
-      setEvaluationState("ready");
+      const generated = await generateQuiz(currentMaterialId, counts);
+      const draft = createDraft(
+        generated,
+        { id: currentMaterialId, title: material?.title ?? "" },
+        counts.choiceCount + counts.openCount,
+      );
+      commit(draft);
     } catch (error) {
       setGenerationError(describeQuizError(error, "generate"));
     } finally {
@@ -173,33 +143,29 @@ export default function PracticePage() {
     [commit, practice],
   );
 
-  const submit = useCallback(() => {
-    if (practice === null || practice.submitted) return;
-    const next: StoredPractice = { ...practice, submitted: true };
-    commit(next);
-    void evaluate(next);
-  }, [commit, evaluate, practice]);
+  const submit = useCallback(async () => {
+    if (practice === null || submitting) {
+      return;
+    }
 
-  const retryEvaluation = useCallback(() => {
-    if (practice === null) return;
-    void evaluate(practice);
-  }, [evaluate, practice]);
+    setSubmitting(true);
+    setSubmitError(null);
 
-  const restart = useCallback(() => {
-    clearPractice();
-    setPractice(null);
-    setEvaluationState("ready");
-    setEvaluationError(null);
-    setGenerationError(null);
-  }, []);
+    try {
+      const result = await submitAttempt(practice.testId, buildAnswers(practice));
+      // Результат живёт на сервере, поэтому черновик больше не нужен: иначе
+      // возврат на /quiz показал бы уже сданный тест.
+      clearPractice();
+      setPractice(null);
+      navigate(`/results/${result.attempt_id}`, { state: { afterSubmit: true } });
+    } catch (error) {
+      setSubmitError(describeQuizError(error, "attempt"));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [navigate, practice, submitting]);
 
-  const step: Step = generating
-    ? "generating"
-    : practice === null
-      ? "config"
-      : practice.submitted
-        ? "result"
-        : "answering";
+  const step: Step = generating ? "generating" : practice === null ? "config" : "answering";
 
   const selectedTitle =
     materials.find((item) => item.id === currentMaterialId)?.title ??
@@ -207,9 +173,7 @@ export default function PracticePage() {
     "материал";
 
   const safeIndex =
-    practice === null
-      ? 0
-      : Math.min(practice.questionIndex, practice.quiz.questions.length - 1);
+    practice === null ? 0 : Math.min(practice.questionIndex, practice.questions.length - 1);
 
   return (
     <div className="space-y-5">
@@ -242,28 +206,26 @@ export default function PracticePage() {
       )}
 
       {step === "answering" && practice !== null && (
-        <PracticeRun
-          quiz={practice.quiz}
-          requestedTotal={practice.requestedTotal}
-          index={safeIndex}
-          answer={practice.answers[safeIndex]}
-          onAnswer={answerQuestion}
-          onPrevious={() => goTo(Math.max(0, safeIndex - 1))}
-          onNext={() => goTo(Math.min(practice.quiz.questions.length - 1, safeIndex + 1))}
-          onSubmit={submit}
-        />
-      )}
+        <>
+          {submitError && (
+            <p className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <TriangleAlert className="size-4" aria-hidden />
+              {submitError}
+            </p>
+          )}
 
-      {step === "result" && practice !== null && (
-        <PracticeResult
-          quiz={practice.quiz}
-          answers={practice.answers}
-          evaluation={practice.evaluation}
-          evaluationState={evaluationState}
-          evaluationError={evaluationError}
-          onRetryEvaluation={retryEvaluation}
-          onRestart={restart}
-        />
+          <PracticeRun
+            questions={practice.questions}
+            requestedTotal={practice.requestedTotal}
+            index={safeIndex}
+            answer={practice.answers[safeIndex]}
+            submitting={submitting}
+            onAnswer={answerQuestion}
+            onPrevious={() => goTo(Math.max(0, safeIndex - 1))}
+            onNext={() => goTo(Math.min(practice.questions.length - 1, safeIndex + 1))}
+            onSubmit={() => void submit()}
+          />
+        </>
       )}
     </div>
   );

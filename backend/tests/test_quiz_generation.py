@@ -37,20 +37,28 @@ def test_generation_stores_test_with_questions(
     assert open_question.rubric.reference_answer
 
 
-def test_generation_keeps_previous_contract(
+def test_generation_response_carries_question_ids(
     api: TestClient,
     auth: dict[str, str],
     material: dict[str, object],
+    session: Session,
 ) -> None:
     body = generate_test(api, auth, str(material["id"]))
+
+    stored = question_rows(session, body["test_id"])
+    assert [question["question_id"] for question in body["questions"]] == [
+        question.id for question in stored
+    ]
 
     assert set(body) >= {"summary", "questions", "test_id"}
     choice, open_question = body["questions"]
     assert choice["kind"] == "choice"
-    assert choice["correct_index"] == 0
     assert len(choice["options"]) == 3
     assert open_question["kind"] == "open"
-    assert open_question["reference"]
+
+    # Правильные ответы и эталоны живут в БД: до сдачи клиент их не получает.
+    assert "correct_index" not in choice
+    assert "reference" not in open_question
 
 
 def test_each_generation_stores_new_test(

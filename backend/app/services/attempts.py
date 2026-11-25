@@ -42,9 +42,9 @@ class AttemptService:
     ) -> Attempt | None:
         """Создаёт попытку и оценивает её тестовые вопросы по данным БД.
 
-        Отвеченным считается только тот вариант, который принадлежит этому
-        вопросу: чужой или несуществующий вариант сохраняется как пропуск, иначе
-        счёт можно было бы подделать клиентским запросом.
+        Отвеченным считается только индекс в пределах списка вариантов: такой
+        ответ нельзя привязать к чужому вопросу, а индекс вне диапазона
+        сохраняется как пропуск.
         """
         test = self._tests.get_owned(user.id, test_id)
         if test is None:
@@ -144,10 +144,9 @@ def _selected_option(
     question: Question,
     incoming: AttemptAnswerInput | None,
 ) -> ClosedQuestionOption | None:
-    """Вариант ответа, если он существует и принадлежит именно этому вопросу."""
-    if incoming is None or incoming.selected_option_id is None:
+    """Вариант по присланной позиции: индекс вне диапазона — пропуск."""
+    if incoming is None or incoming.selected_index is None:
         return None
-    return next(
-        (option for option in question.options if option.id == incoming.selected_option_id),
-        None,
-    )
+    if incoming.selected_index >= len(question.options):
+        return None
+    return question.options[incoming.selected_index]

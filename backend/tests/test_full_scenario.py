@@ -20,15 +20,17 @@ def test_full_learning_flow(api: TestClient, auth: dict[str, str], session: Sess
 
     questions = {question.type: question for question in question_rows(session, test_id)}
     choice = questions[QUESTION_CHOICE]
-    correct_option = next(
-        option for option in option_rows(session, choice.id) if option.is_correct
+    correct_index = next(
+        index
+        for index, option in enumerate(option_rows(session, choice.id))
+        if option.is_correct
     )
 
     submitted = api.post(
         f"/tests/{test_id}/attempts",
         json={
             "answers": [
-                {"question_id": choice.id, "selected_option_id": correct_option.id},
+                {"question_id": choice.id, "selected_index": correct_index},
                 {
                     "question_id": questions[QUESTION_OPEN].id,
                     "answer_text": "Свет превращается в химическую энергию",

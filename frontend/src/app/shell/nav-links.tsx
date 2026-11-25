@@ -1,4 +1,4 @@
-import { BookOpenCheck, LayoutDashboard } from "lucide-react";
+import { BookOpenCheck, ChartNoAxesColumn, LayoutDashboard } from "lucide-react";
 import { NavLink } from "react-router";
 
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { to: "/", label: "Обзор", icon: LayoutDashboard, end: true },
   { to: "/quiz", label: "Тест", icon: BookOpenCheck, end: false },
+  { to: "/results", label: "Результаты", icon: ChartNoAxesColumn, end: false },
 ];
 
 type NavLinksProps = {

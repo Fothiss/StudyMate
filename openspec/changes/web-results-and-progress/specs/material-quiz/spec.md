@@ -56,6 +56,20 @@ The system SHALL generate a quiz for a material owned by the current user from i
 - **WHEN** the same material is requested twice in a row
 - **THEN** the system generates and stores two separate tests and returns a different test identifier each time
 
+### Requirement: Generated Quiz Structure
+
+The system MUST validate the language model response before storing it: the quiz has at least one question, every multiple-choice question offers at least two options with a correct answer index pointing at an existing option, and every open question carries a non-empty reference answer, and the validated answer data SHALL be stored with the quiz and SHALL NOT be returned to the client.
+
+#### Scenario: Valid quiz returned
+
+- **WHEN** the language model returns a summary and questions whose kinds and answer data are well formed
+- **THEN** the system responds with `200`, stores the correct option index of every multiple-choice question and the reference answer of every open question, and returns every question with its kind and the options needed to answer it
+
+#### Scenario: Malformed quiz rejected
+
+- **WHEN** the language model returns no questions, a multiple-choice question with fewer than two options, an out-of-range answer index, or an open question without a reference answer
+- **THEN** the system responds with `502` and does not return the malformed quiz
+
 ## REMOVED Requirements
 
 ### Requirement: Quiz Answer Evaluation

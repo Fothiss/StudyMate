@@ -189,6 +189,7 @@ def _detail_view(attempt: Attempt) -> AttemptDetailRead:
         options = [option.text for option in question.options]
         correct_index = None
         selected_index = None
+        reference = None
         if question.type == QUESTION_CHOICE:
             correct_index = next(
                 (
@@ -207,6 +208,8 @@ def _detail_view(attempt: Attempt) -> AttemptDetailRead:
                     ),
                     None,
                 )
+        elif question.rubric is not None:
+            reference = question.rubric.reference_answer
         questions.append(
             AttemptQuestionRead(
                 question_id=question.id,
@@ -216,6 +219,7 @@ def _detail_view(attempt: Attempt) -> AttemptDetailRead:
                 correct_index=correct_index,
                 selected_index=selected_index,
                 answer_text=answer.answer_text if answer is not None else None,
+                reference=reference,
                 is_correct=answer.is_correct_auto if answer is not None else None,
                 llm_score=answer.llm_score if answer is not None else None,
                 llm_feedback=answer.llm_feedback if answer is not None else None,

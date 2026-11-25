@@ -1,8 +1,10 @@
 """Pydantic-схемы сгенерированного теста.
 
-Схема используется и как контракт ответа модели (`with_structured_output`),
-и как `response_model` эндпоинта, поэтому проверки структуры живут здесь:
-модель может вернуть индекс правильного ответа вне диапазона вариантов.
+Первая половина файла — контракт ответа модели (`with_structured_output`):
+именно здесь живут проверки структуры, потому что модель может вернуть индекс
+правильного ответа вне диапазона вариантов. Вторая половина — контракт ответа
+API: он собирается из сохранённого теста и описывает только то, что нужно
+клиенту, чтобы показать вопросы и сдать их.
 """
 
 from typing import Annotated, Literal
@@ -61,14 +63,40 @@ class Quiz(BaseModel):
         return self
 
 
-class TestRead(Quiz):
-    """Тест в ответе API: прежние поля плюс идентификатор сохранённой строки.
+class ChoiceQuestionRead(BaseModel):
+    """Тестовый вопрос в ответе API: то, что нужно, чтобы ответить."""
 
-    `summary` и `questions` остаются на месте, поэтому клиент, который ещё
-    сравнивает `correct_index` сам, продолжает работать без правок.
+    question_id: str = Field(description="Идентификатор сохранённого вопроса")
+    kind: Literal["choice"] = Field(default="choice", description="Тип вопроса: тестовый")
+    text: str = Field(min_length=1, description="Формулировка вопроса")
+    options: list[str] = Field(min_length=2, description="Варианты ответа")
+
+
+class OpenQuestionRead(BaseModel):
+    """Открытый вопрос в ответе API: без эталона, он нужен только серверу."""
+
+    question_id: str = Field(description="Идентификатор сохранённого вопроса")
+    kind: Literal["open"] = Field(default="open", description="Тип вопроса: открытый")
+    text: str = Field(min_length=1, description="Формулировка вопроса")
+
+
+QuestionRead = Annotated[
+    ChoiceQuestionRead | OpenQuestionRead,
+    Field(discriminator="kind", description="Вопрос одного из поддерживаемых типов"),
+]
+
+
+class TestRead(BaseModel):
+    """Тест в ответе API, собранный из сохранённых строк.
+
+    `question_id` нужен клиенту, чтобы сдавать ответы адресно, а не по
+    позиции: порядок вопросов может измениться только вместе с тестом, но
+    ссылка на вопрос от него не зависит.
     """
 
     test_id: str = Field(description="Идентификатор сохранённого теста")
+    summary: list[str] = Field(min_length=1, description="Краткое содержание материала")
+    questions: list[QuestionRead] = Field(min_length=1, description="Вопросы теста")
 
 
 class QuizRequest(BaseModel):
