@@ -7,7 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health, materials, quiz, users
+from app.api.routes import attempts, auth, health, materials, quiz, users
 from app.core.config import settings
 from app.core.db import init_db
 
@@ -34,6 +34,8 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(materials.router)
 app.include_router(quiz.router)
+app.include_router(attempts.tests_router)
+app.include_router(attempts.attempts_router)
 
 
 if __name__ == "__main__":

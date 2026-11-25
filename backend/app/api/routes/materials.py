@@ -7,8 +7,7 @@ from app.dependencies.security import CurrentUser
 from app.dependencies.services import MaterialServiceDep
 from app.models.material import Material
 from app.schemas.material import MaterialRead
-from app.schemas.quiz import Quiz, QuizRequest
-from app.services import gigachat as gigachat_service
+from app.schemas.quiz import QuizRequest, TestRead
 from app.services.gigachat import QuizGenerationError
 from app.services.pdf import EmptyPdfText, MaterialTooLarge
 from app.services.storage import FileTooLarge, UnsupportedFileType
@@ -77,7 +76,7 @@ def read_material(
 
 @router.post(
     "/{material_id}/quiz",
-    response_model=Quiz,
+    response_model=TestRead,
     summary="Сгенерировать тест по материалу",
 )
 def generate_material_quiz(
@@ -85,8 +84,12 @@ def generate_material_quiz(
     payload: QuizRequest,
     service: MaterialServiceDep,
     current_user: CurrentUser,
-) -> Quiz:
-    """Генерирует вопросы по уже извлечённому тексту материала."""
+) -> TestRead:
+    """Генерирует тест по тексту материала и сохраняет его.
+
+    Ответ остаётся прежним и дополняется `test_id`: по нему сдача идёт через
+    `POST /tests/{test_id}/attempts`.
+    """
     material = service.get(current_user, material_id)
     if material is None:
         raise HTTPException(
@@ -100,13 +103,15 @@ def generate_material_quiz(
         )
 
     try:
-        return gigachat_service.generate_quiz(
-            material.extracted_text,
-            choice_count=payload.choice_count,
-            open_count=payload.open_count,
+        test, quiz = service.generate_quiz(
+            user=current_user,
+            material=material,
+            payload=payload,
         )
     except QuizGenerationError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to generate quiz",
         ) from error
+
+    return TestRead(test_id=test.id, summary=quiz.summary, questions=quiz.questions)

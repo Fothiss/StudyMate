@@ -225,6 +225,7 @@ __marimo__/
 # StudyMate
 *.db
 backend/storage/
+backend/tests/.tmp/
 backend/.env
 backend/.env.*
 !backend/.env.example

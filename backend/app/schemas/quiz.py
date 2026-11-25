@@ -61,6 +61,16 @@ class Quiz(BaseModel):
         return self
 
 
+class TestRead(Quiz):
+    """Тест в ответе API: прежние поля плюс идентификатор сохранённой строки.
+
+    `summary` и `questions` остаются на месте, поэтому клиент, который ещё
+    сравнивает `correct_index` сам, продолжает работать без правок.
+    """
+
+    test_id: str = Field(description="Идентификатор сохранённого теста")
+
+
 class QuizRequest(BaseModel):
     """Параметры генерации: сколько вопросов каждого типа нужно."""
 
